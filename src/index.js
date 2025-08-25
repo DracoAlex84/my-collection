@@ -19,10 +19,9 @@ const PORT = process.env.PORT || 3000;
 
 job.start(); // Start the cron job
 // Add a middleware to parse JSON bodies
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // or higher if needed
 app.use(cors({
-  origin: ["http://localhost:8081", "http://localhost:19006", "http://localhost:3000"], // add all your dev origins
-  credentials: true,
+  origin: "*"
 }));
 
 app.use("/api/auth", authRoutes);
