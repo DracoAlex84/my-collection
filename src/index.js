@@ -2,7 +2,7 @@ import express from "express";
 import "dotenv/config";
 
 // Import routes
-import authRoutes from "./routes/authroutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import collectionRoutes from "./routes/collectionRoutes.js";
 
 // Import to database
