@@ -37,7 +37,7 @@ router.post("/register", async (req, res) => {
             return res.status(400).json({ message: "Invalid email format" });
         }
 
-        if (!isStrongPassword(password) && password.length < 6) {
+        if (!isStrongPassword(password) || password.length < 6) {
             return res.status(400).json({ message: "Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character." });
         }
 
