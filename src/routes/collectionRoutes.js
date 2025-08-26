@@ -86,6 +86,16 @@ router.get("/", protectRoute, async (req, res) => {
   }
 });
 
+router.get("/user", protectRoute, async (req, res)=>{
+  try {
+    const collections = await Collection.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(collections);
+  } catch (error) {
+    console.log("Get user collections error: ", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
 // Delete collection route
 router.delete("/:id", protectRoute, async (req, res) => {
   try {
