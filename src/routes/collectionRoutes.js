@@ -14,7 +14,7 @@ router.post("/", protectRoute, upload.single("image"), async (req, res) => {
     try {
         const { title, caption, category, status, brand } = req.body;
 
-        if (!title || !caption || !category || !status || !brand || !req.file) {
+        if (!title || !caption || !category || !status || !brand ) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
