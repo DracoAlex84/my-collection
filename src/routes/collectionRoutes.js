@@ -2,42 +2,55 @@ import express from "express";
 import cloudinary from "../lib/cloudinary.js";
 import Collection from "../models/Collections.js";
 import protectRoute from "../middleware/auth.middleware.js";
+import multer from "multer";
 
 const router = express.Router();
 
-// Creation route
-router.post("/", protectRoute, async (req, res) => {
-    try {
-        const { title, caption, image, category, status, brand } = req.body;
+const storage = multer.memoryStorage();
+const upload = multer({ storage});
 
-        if (!title || !caption || !image || !category || !status || !brand) {
+// Creation route
+router.post("/", protectRoute, upload.single("image"), async (req, res) => {
+    try {
+        const { title, caption, category, status, brand } = req.body;
+
+        if (!title || !caption || !category || !status || !brand || !req.file) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        // Upload image to Cloudinary
-        const result = await cloudinary.uploader.upload(image);
-        const imageUrl = result.secure_url;
+        // Subir imagen a Cloudinary
+        const result = await cloudinary.uploader.upload_stream(
+            { folder: "collections" }, 
+            async (error, uploadedImage) => {
+                if (error) {
+                    console.error("Cloudinary upload error:", error);
+                    return res.status(500).json({ message: "Image upload failed" });
+                }
 
-        // Save to the database
-        const newCollection = new Collection({
-            title,
-            caption,
-            image: imageUrl,
-            category,
-            status,
-            brand,
-            user: req.user._id
-        });
+                const newCollection = new Collection({
+                    title,
+                    caption,
+                    image: uploadedImage.secure_url,
+                    category,
+                    status,
+                    brand,
+                    user: req.user._id
+                });
 
-        await newCollection.save();
+                await newCollection.save();
+                res.status(201).json(newCollection);
+            }
+        );
 
-        res.status(201).json(newCollection);
+        // Pasar el buffer a cloudinary
+        result.end(req.file.buffer);
 
     } catch (error) {
-        console.log("Error creating collection:", error);
+        console.error("Error creating collection:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
 
 // Fetch all collections route with pagination
 router.get("/", protectRoute, async (req, res) => {
