@@ -6,77 +6,57 @@ import multer from "multer";
 
 const router = express.Router();
 
-// Multer en memoria (acepta solo imágenes)
+// Configuración de multer en memoria
 const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only image uploads are allowed"));
-    }
-    cb(null, true);
-  },
-});
+const upload = multer({ storage });
 
-// Helper: subir buffer a Cloudinary usando stream
-const uploadFromBuffer = (buffer, opts = {}) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: "collections", ...opts },
-      (err, result) => {
-        if (err) return reject(err);
-        resolve(result);
-      }
-    );
-    stream.end(buffer);
-  });
-
-// Helper: subir base64 (acepta data URL o base64 puro)
-const uploadFromBase64 = (imageStr, opts = {}) => {
-  const src = imageStr.startsWith("data:")
-    ? imageStr
-    : `data:image/jpeg;base64,${imageStr}`;
-  return cloudinary.uploader.upload(src, { folder: "collections", ...opts });
-};
-
-// Creation route
+// Crear colección con subida de imagen
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {
-  try {
-    const { title, caption, category, status, brand, image: imageBody } = req.body;
+    try {
+        const { title, caption, category, status, brand } = req.body;
 
-    // Validación de campos de texto
-    if (!title || !caption || !category || !status || !brand) {
-      return res.status(400).json({ message: "All fields are required" });
+        if (!title || !caption || !category || !status || !brand) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: "Image file is required" });
+        }
+
+        // Función para subir a Cloudinary usando el buffer
+        const streamUpload = (buffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: "collections" },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                stream.end(buffer);
+            });
+        };
+
+        // Subir imagen a Cloudinary
+        const uploadedImage = await streamUpload(req.file.buffer);
+
+        // Guardar colección en MongoDB
+        const newCollection = new Collection({
+            title,
+            caption,
+            image: uploadedImage.secure_url,
+            category,
+            status,
+            brand,
+            user: req.user._id,
+        });
+
+        await newCollection.save();
+        res.status(201).json(newCollection);
+    } catch (error) {
+        console.error("Error creating collection:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
-
-    // Subida de imagen: archivo (FormData) o base64 (body)
-    let uploadedImage;
-    if (req.file?.buffer) {
-      uploadedImage = await uploadFromBuffer(req.file.buffer);
-    } else if (imageBody) {
-      uploadedImage = await uploadFromBase64(imageBody);
-    } else {
-      return res.status(400).json({ message: "Image is required" });
-    }
-
-    const newCollection = new Collection({
-      title,
-      caption,
-      image: uploadedImage.secure_url,
-      imagePublicId: uploadedImage.public_id, // <-- guarda public_id
-      category,
-      status,
-      brand,
-      user: req.user._id,
-    });
-
-    await newCollection.save();
-    res.status(201).json(newCollection);
-  } catch (error) {
-    console.error("Error creating collection:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
 });
 
 // Fetch all collections route with pagination
