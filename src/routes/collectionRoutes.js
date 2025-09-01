@@ -110,15 +110,23 @@ router.delete("/:id", protectRoute, async (req, res) => {
     }
 
     // Borra imagen por public_id si existe
-    if (collection.imagePublicId) {
+     if (collection && collection.image) {
+      // Example: https://res.cloudinary.com/<cloud_name>/image/upload/v1234567890/collections/filename.jpg
+      const urlParts = collection.image.split("/");
+      const uploadIndex = urlParts.findIndex(part => part === "upload");
+      // Get everything after 'upload/' and before file extension
+      const publicIdWithVersion = urlParts.slice(uploadIndex + 1).join("/"); // collections/filename.jpg or v1234567890/collections/filename.jpg
+      // Remove version if present (starts with 'v' and numbers)
+      const publicId = publicIdWithVersion.replace(/v\d+\//, "").replace(/\.[^/.]+$/, ""); // collections/filename
+
       try {
-        await cloudinary.uploader.destroy(collection.imagePublicId);
-        console.log("Image deleted from Cloudinary successfully");
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Image deleted from Cloudinary:", publicId);
       } catch (err) {
-        console.log("Error deleting image from Cloudinary:", err);
+        console.log("Cloudinary delete error:", err.message);
       }
     }
-
+    
     await collection.deleteOne();
     res.status(200).json({ message: "Collection deleted successfully" });
   } catch (error) {
