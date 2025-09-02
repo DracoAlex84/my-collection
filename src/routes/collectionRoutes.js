@@ -13,9 +13,9 @@ const upload = multer({ storage });
 // Crear colección con subida de imagen
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {
     try {
-        const { title, caption, category, status, brand } = req.body;
+        const { title, caption, category, status, brand, author, price, currency } = req.body;
 
-        if (!title || !caption || !category || !status || !brand) {
+        if (!title || !caption || !category || !status || !brand || !author || !price || !currency) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
