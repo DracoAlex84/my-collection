@@ -6,11 +6,11 @@ import multer from "multer";
 
 const router = express.Router();
 
-// Configuración de multer en memoria
+// Multer configuration in system
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Crear colección con subida de imagen
+// Create collection
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {
     try {
         const { title, caption, category, status, brand, author, price, currency } = req.body;
@@ -23,7 +23,7 @@ router.post("/", protectRoute, upload.single("image"), async (req, res) => {
             return res.status(400).json({ message: "Image file is required" });
         }
 
-        // Función para subir a Cloudinary usando el buffer
+        // Upload image to Cloudinary using buffer
         const streamUpload = (buffer) => {
             return new Promise((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream(
@@ -37,10 +37,10 @@ router.post("/", protectRoute, upload.single("image"), async (req, res) => {
             });
         };
 
-        // Subir imagen a Cloudinary
+        // Upload image to Cloudinary
         const uploadedImage = await streamUpload(req.file.buffer);
 
-        // Guardar colección en MongoDB
+        // Save collection to MongoDB
         const newCollection = new Collection({
             title,
             caption,
@@ -89,12 +89,63 @@ router.get("/", protectRoute, async (req, res) => {
   }
 });
 
+// Fetch all collections created by user
 router.get("/user", protectRoute, async (req, res)=>{
   try {
     const collections = await Collection.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(collections);
   } catch (error) {
     console.log("Get user collections error: ", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
+//Modify collection
+router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
+  try {
+      const { title, caption, category, status, brand, author, price, currency } = req.body;
+
+      const collection = await Collection.findById(req.params.id);
+
+      if (!collection) return res.status(400).json({ message: "Collection not found" });
+
+      // Authorization
+      if (collection.user.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "You are not authorized to modify this collection" });
+      }
+
+      // If new image is provided, upload it to Cloudinary
+      if (req.file) {
+        const streamUpload = (buffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: "collections" },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                stream.end(buffer);
+            });
+        };
+
+        // Upload image to Cloudinary
+        const uploadedImage = await streamUpload(req.file.buffer);
+      }
+
+      const modifiedCollection = new Collection({
+        price,
+        currency,
+        image: uploadedImage.secure_url,
+        status
+      });
+
+      
+      await modifiedCollection.save();
+      res.status(201).json(modifiedCollection);
+
+  } catch (error) {
+    console.error("Error modifying collection:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 })
@@ -107,12 +158,13 @@ router.delete("/:id", protectRoute, async (req, res) => {
       return res.status(400).json({ message: "Collection not found" });
     }
 
-    // Autorización
+    // Authorization
     if (collection.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "You are not authorized to delete this collection" });
     }
 
-    // Borra imagen por public_id si existe
+    // Delete image by public_id if it exist
+    
      if (collection && collection.image) {
       // Example: https://res.cloudinary.com/<cloud_name>/image/upload/v1234567890/collections/filename.jpg
       const urlParts = collection.image.split("/");
