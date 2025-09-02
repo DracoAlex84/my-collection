@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ["USD", "ARS", "JPY"],
         default: "ARS",
-        require: true,
+        required: true,
     },
     category: {
         type: String,
