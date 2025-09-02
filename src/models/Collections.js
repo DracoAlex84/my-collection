@@ -21,6 +21,20 @@ const userSchema = new mongoose.Schema({
     imagePublicId: {
         type: String,
     },
+    author: {
+        type: String,
+        required: true,
+    },
+    price: {
+        type: Number,
+        required: true,
+    },
+    currency: {
+        type: String,
+        enum: ["USD", "ARS", "JPY"],
+        default: "ARS",
+        require: true,
+    },
     category: {
         type: String,
         enum: ["book", "manga", "comic", "figure"],
@@ -29,7 +43,7 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["owned", "whishlist"],
+        enum: ["owned", "whishlist", "preorder", "deposit"],
         default: "owned",
         required: true,
     },

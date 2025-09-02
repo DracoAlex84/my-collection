@@ -44,6 +44,9 @@ router.post("/", protectRoute, upload.single("image"), async (req, res) => {
         const newCollection = new Collection({
             title,
             caption,
+            author,
+            price, 
+            currency,
             image: uploadedImage.secure_url,
             category,
             status,
