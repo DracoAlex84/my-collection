@@ -23,13 +23,13 @@ const userSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ["adamas", "elite", "n95", "azura"],
-        default: "adamas",
+        enum: ["book", "manga", "comic", "figure"],
+        default: "book",
         required: true,
     },
     status: {
         type: String,
-        enum: ["015", "030"],
+        enum: ["owned", "whishlist"],
         default: "owned",
         required: true,
     },
