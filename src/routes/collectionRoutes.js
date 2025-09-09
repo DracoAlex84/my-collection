@@ -10,6 +10,7 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+
 // Create collection
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {
     try {
@@ -103,16 +104,19 @@ router.get("/user", protectRoute, async (req, res)=>{
 //Modify collection
 router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
   try {
-      const { title, caption, category, status, brand, author, price, currency } = req.body;
+      const { caption, status, price, currency } = req.body;
 
       const collection = await Collection.findById(req.params.id);
 
-      if (!collection) return res.status(400).json({ message: "Collection not found" });
+      if (!collection) return res.status(404).json({ message: "Collection not found" });
 
       // Authorization
       if (collection.user.toString() !== req.user._id.toString()) {
         return res.status(403).json({ message: "You are not authorized to modify this collection" });
       }
+
+      // Keep actual image
+      let uploadedImageUrl = collection.image
 
       // If new image is provided, upload it to Cloudinary
       if (req.file) {
@@ -131,18 +135,18 @@ router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
 
         // Upload image to Cloudinary
         const uploadedImage = await streamUpload(req.file.buffer);
+        uploadedImageUrl = uploadedImage.secure_url;
       }
 
-      const modifiedCollection = new Collection({
-        price,
-        currency,
-        image: uploadedImage.secure_url,
-        status
-      });
+      collection.caption = caption || collection.caption;
+      collection.status = status || collection.status;
+      collection.price = price || collection.price;
+      collection.currency = currency || collection.currency;
+      collection.image = uploadedImageUrl;
 
       
-      await modifiedCollection.save();
-      res.status(201).json(modifiedCollection);
+      await collection.save();
+      res.status(200).json(collection);
 
   } catch (error) {
     console.error("Error modifying collection:", error);
