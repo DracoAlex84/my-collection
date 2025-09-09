@@ -11,6 +11,19 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 
+// Fetch all collections created by user
+router.get("/user", protectRoute, async (req, res)=>{
+  try {
+    const collections = await Collection.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(collections);
+  } catch (error) {
+    console.log("Get user collections error: ", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
+
+
 // Create collection
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {
     try {
@@ -90,21 +103,12 @@ router.get("/", protectRoute, async (req, res) => {
   }
 });
 
-// Fetch all collections created by user
-router.get("/user", protectRoute, async (req, res)=>{
-  try {
-    const collections = await Collection.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(collections);
-  } catch (error) {
-    console.log("Get user collections error: ", error.message);
-    res.status(500).json({ message: "Internal server error" });
-  }
-})
+
 
 //Modify collection
 router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
   try {
-      const { caption, status, price, currency } = req.body;
+      const { status, price, currency } = req.body;
 
       const collection = await Collection.findById(req.params.id);
 
@@ -138,7 +142,6 @@ router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
         uploadedImageUrl = uploadedImage.secure_url;
       }
 
-      collection.caption = caption || collection.caption;
       collection.status = status || collection.status;
       collection.price = price || collection.price;
       collection.currency = currency || collection.currency;
