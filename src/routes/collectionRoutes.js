@@ -3,6 +3,7 @@ import cloudinary from "../lib/cloudinary.js";
 import Collection from "../models/Collections.js";
 import protectRoute from "../middleware/auth.middleware.js";
 import multer from "multer";
+import { escapeRegex } from "../utils/getPublicIdFromUrl.js";
 
 const router = express.Router();
 
@@ -22,6 +23,47 @@ router.get("/user", protectRoute, async (req, res)=>{
   }
 })
 
+// Search collections by title
+router.get("/search", protectRoute, async (req, res) =>{
+  try {
+    const rawName = (req.query.name || "").trim();
+
+    if (!rawName) {
+      return res.status(400).json({ message: "Name query parameter is required" });
+    }
+
+    const name = rawName.slice(0, 100); // Limit to 100 characters
+
+    // Pagination
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100); // Between 1 and 100
+    const skip = (page - 1) * limit;
+
+    const regex = new RegExp(escapeRegex(name), "i");
+    const filter = { title: regex }; 
+
+    const [collections, total] = await Promise.all([
+      Collection.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("user", "username profilePicture")
+        .lean(),
+      Collection.countDocuments(filter)
+    ]);
+
+    res.json({
+      collections,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error("Search collections error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 
 // Create collection

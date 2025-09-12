@@ -16,3 +16,7 @@ const getPublicIdFromUrl = async (url) =>{
 }
 
 export default getPublicIdFromUrl;
+
+export function escapeRegex (text="") {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
