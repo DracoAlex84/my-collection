@@ -145,6 +145,17 @@ router.get("/", protectRoute, async (req, res) => {
   }
 });
 
+// Get single collection by ID
+router.get("/:id", protectRoute, async (req, res)=>{
+  try {
+    const collection = await Collection.findById(req.params.id).populate("user", "username profilePicture");
+    if (!collection) return res.status(404).json({ message: "Collection not found" });
+    res.json(collection); 
+  } catch (error) {
+    console.error("Error fetching collection:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
 
 
 //Modify collection
