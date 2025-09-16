@@ -11,6 +11,19 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+router.get("/user", protectRoute, async (req, res) => {
+  try {
+    const collections = await Collection.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("user", "username profilePicture");
+
+    res.json(collections);
+  } catch (error) {
+    console.error("Error fetching user collections:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 // Fetch all collections created by user
 router.get("/", protectRoute, async (req, res) => {
@@ -45,6 +58,7 @@ router.get("/", protectRoute, async (req, res) => {
       total,
       totalPages: Math.ceil(total / limit),
     });
+
   } catch (error) {
     console.error("Get collections error:", error);
     res.status(500).json({ message: "Internal server error" });
