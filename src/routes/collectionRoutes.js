@@ -26,19 +26,46 @@ router.get("/user", protectRoute, async (req, res) => {
 
 
 // Fetch all collections created by user
-router.get("/", protectRoute, async (req, res) => {
+router.get("/",  async (req, res) => {
   try {
     const rawName = (req.query.name || "").trim();
+    const rawBrand = (req.query.brand || "").trim();
+    const rawAuthor = (req.query.author || "").trim();
+    const rawCategory = (req.query.category || "").trim();
+    const rawStatus = (req.query.status || "").trim();
+
+
 
     // Paginación
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    let filter = {};
+    let filter = {}
+    
     if (rawName) {
       const regex = new RegExp(escapeRegex(rawName.slice(0, 100)), "i");
       filter = { title: regex };
+    }
+
+    if (rawBrand) {
+      const brandRegex = new RegExp(escapeRegex(rawBrand.slice(0, 100)), "i");
+      filter.brand = { $regex: brandRegex };
+    }
+
+    if (rawAuthor) {
+      const authorRegex = new RegExp(escapeRegex(rawAuthor.slice(0, 100)), "i");
+      filter.author = { $regex: authorRegex };
+    }
+
+    if (rawCategory) {
+      const categoryRegex = new RegExp(escapeRegex(rawCategory.slice(0, 100)), "i");
+      filter.category = { $regex: categoryRegex };
+    }
+
+    if (rawStatus) {
+      const statusRegex = new RegExp(escapeRegex(rawStatus.slice(0, 100)), "i");
+      filter.status = { $regex: statusRegex };
     }
 
     const [collections, total] = await Promise.all([
