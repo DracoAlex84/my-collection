@@ -13,34 +13,20 @@ const upload = multer({ storage });
 
 
 // Fetch all collections created by user
-router.get("/user", protectRoute, async (req, res)=>{
-  try {
-    const collections = await Collection.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(collections);
-  } catch (error) {
-    console.log("Get user collections error: ", error.message);
-    res.status(500).json({ message: "Internal server error" });
-  }
-})
-
-// Search collections by title
-router.get("/search", protectRoute, async (req, res) =>{
+router.get("/", protectRoute, async (req, res) => {
   try {
     const rawName = (req.query.name || "").trim();
 
-    if (!rawName) {
-      return res.status(400).json({ message: "Name query parameter is required" });
-    }
-
-    const name = rawName.slice(0, 100); // Limit to 100 characters
-
-    // Pagination
+    // Paginación
     const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100); // Between 1 and 100
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const regex = new RegExp(escapeRegex(name), "i");
-    const filter = { title: regex }; 
+    let filter = {};
+    if (rawName) {
+      const regex = new RegExp(escapeRegex(rawName.slice(0, 100)), "i");
+      filter = { title: regex };
+    }
 
     const [collections, total] = await Promise.all([
       Collection.find(filter)
@@ -60,7 +46,7 @@ router.get("/search", protectRoute, async (req, res) =>{
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error("Search collections error:", error);
+    console.error("Get collections error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
