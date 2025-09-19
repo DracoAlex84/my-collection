@@ -3,13 +3,16 @@ import cloudinary from "../lib/cloudinary.js";
 import Collection from "../models/Collections.js";
 import protectRoute from "../middleware/auth.middleware.js";
 import multer from "multer";
-import { escapeRegex } from "../utils/getPublicIdFromUrl.js";
+import { escapeRegex, getPagination, queryWithCount } from "../utils/getPublicIdFromUrl.js";
 
 const router = express.Router();
 
 // Multer configuration in system
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+
+
 
 router.get("/user", protectRoute, async (req, res) => {
   try {
@@ -26,20 +29,15 @@ router.get("/user", protectRoute, async (req, res) => {
 
 
 // Fetch all collections created by user
-router.get("/",  async (req, res) => {
+router.get("/", protectRoute, async (req, res) => {
   try {
     const rawName = (req.query.name || "").trim();
     const rawBrand = (req.query.brand || "").trim();
     const rawAuthor = (req.query.author || "").trim();
-    const rawCategory = (req.query.category || "").trim();
     const rawStatus = (req.query.status || "").trim();
 
-
-
-    // Paginación
-    const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
-    const skip = (page - 1) * limit;
+    // Pagination
+    const { page, limit, skip } = getPagination(req.query);
 
     let filter = {}
     
@@ -58,25 +56,13 @@ router.get("/",  async (req, res) => {
       filter.author = { $regex: authorRegex };
     }
 
-    if (rawCategory) {
-      const categoryRegex = new RegExp(escapeRegex(rawCategory.slice(0, 100)), "i");
-      filter.category = { $regex: categoryRegex };
-    }
-
     if (rawStatus) {
       const statusRegex = new RegExp(escapeRegex(rawStatus.slice(0, 100)), "i");
       filter.status = { $regex: statusRegex };
     }
 
-    const [collections, total] = await Promise.all([
-      Collection.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("user", "username profilePicture")
-        .lean(),
-      Collection.countDocuments(filter)
-    ]);
+    const { results: collections, total } =
+      await queryWithCount(Collection, filter, null, skip, limit);
 
     res.json({
       collections,
@@ -92,6 +78,44 @@ router.get("/",  async (req, res) => {
   }
 });
 
+// Fetch figure collections
+router.get("/figures", protectRoute,async (req, res) => {
+  try {
+    const figureCollections = await Collection.find({ category: "figure"})
+      .sort({ createdAt: -1})
+      .populate("user", "username profilePicture");
+      res.json(figureCollections);
+  } catch (error) {
+    console.error("Error fetching figure collections:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
+// Fetch manga collections
+router.get("/mangas", protectRoute,  async (req, res) => {
+  try {
+    const mangaCollections = await Collection.find({ category: "manga"})
+      .sort({ createdAt: -1})
+      .populate("user", "username profilePicture");
+      res.json(mangaCollections);
+  } catch (error) {
+    console.error("Error fetching manga collections:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
+// Fetch comic collections
+router.get("/comics", protectRoute, async (req, res) => {
+  try {
+    const comicCollections = await Collection.find({ category: "comic"})
+      .sort({ createdAt: -1})
+      .populate("user", "username profilePicture");
+      res.json(comicCollections);
+  } catch (error) {
+    console.error("Error fetching comic collections:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
 
 // Create collection
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {

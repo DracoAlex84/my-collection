@@ -20,3 +20,25 @@ export default getPublicIdFromUrl;
 export function escapeRegex (text="") {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 }
+
+export function getPagination  (query) {
+  const page = Math.max(parseInt(query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(query.limit) || 10, 1), 100);
+  const skip = (page - 1) * limit; 
+
+  return { page, limit, skip}; 
+}
+
+export async function queryWithCount(model, filter,  skip, limit) {
+  const [results, total] = await Promise.all([
+    model.find(filter)
+         .sort({ createdAt: -1 })   // o configurable
+         .skip(skip)
+         .limit(limit)
+         .populate("user", "username profilePicture")
+         .lean(),
+    model.countDocuments(filter)
+  ]);
+
+  return { results, total };
+}
