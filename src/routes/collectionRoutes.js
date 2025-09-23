@@ -31,6 +31,7 @@ router.get("/user", protectRoute, async (req, res) => {
 // Fetch all collections created by user
 router.get("/",  protectRoute, async (req, res) => {
   try {
+    const rawQ = (req.query.q || "").trim();
     const rawName = (req.query.name || "").trim();
     const rawBrand = (req.query.brand || "").trim();
     const rawAuthor = (req.query.author || "").trim();
@@ -40,6 +41,15 @@ router.get("/",  protectRoute, async (req, res) => {
     const { page, limit, skip } = getPagination(req.query);
 
     let filter = {}
+
+    if (rawQ) {
+      const re = new RegExp(escapeRegex(rawQ.slice(0, 100)), "i");
+      filter.$or = [
+        { title: { $regex: re} },
+        { author: { $regex: re} },
+        { brand: { $regex: re} }
+      ]
+    }
     
     if (rawName) {
       filter.title = { $regex: new RegExp(escapeRegex(rawName.slice(0, 100)), "i") };
