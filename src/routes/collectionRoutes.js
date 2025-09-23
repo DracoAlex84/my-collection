@@ -29,7 +29,7 @@ router.get("/user", protectRoute, async (req, res) => {
 
 
 // Fetch all collections created by user
-router.get("/", protectRoute, async (req, res) => {
+router.get("/",  protectRoute, async (req, res) => {
   try {
     const rawName = (req.query.name || "").trim();
     const rawBrand = (req.query.brand || "").trim();
@@ -42,23 +42,16 @@ router.get("/", protectRoute, async (req, res) => {
     let filter = {}
     
     if (rawName) {
-      const regex = new RegExp(escapeRegex(rawName.slice(0, 100)), "i");
-      filter = { title: regex };
+      filter.title = { $regex: new RegExp(escapeRegex(rawName.slice(0, 100)), "i") };
     }
-
     if (rawBrand) {
-      const brandRegex = new RegExp(escapeRegex(rawBrand.slice(0, 100)), "i");
-      filter.brand = { $regex: brandRegex };
+      filter.brand = { $regex: new RegExp(escapeRegex(rawBrand.slice(0, 100)), "i") };
     }
-
     if (rawAuthor) {
-      const authorRegex = new RegExp(escapeRegex(rawAuthor.slice(0, 100)), "i");
-      filter.author = { $regex: authorRegex };
+      filter.author = { $regex: new RegExp(escapeRegex(rawAuthor.slice(0, 100)), "i") };
     }
-
     if (rawStatus) {
-      const statusRegex = new RegExp(escapeRegex(rawStatus.slice(0, 100)), "i");
-      filter.status = { $regex: statusRegex };
+      filter.status = { $regex: new RegExp(escapeRegex(rawStatus.slice(0, 100)), "i") };
     }
 
     const { results: collections, total } =
@@ -79,12 +72,21 @@ router.get("/", protectRoute, async (req, res) => {
 });
 
 // Fetch figure collections
-router.get("/figures", protectRoute,async (req, res) => {
+router.get("/figures", protectRoute,  async (req, res) => {
   try {
-    const figureCollections = await Collection.find({ category: "figure"})
-      .sort({ createdAt: -1})
-      .populate("user", "username profilePicture");
-      res.json(figureCollections);
+
+    const { page, limit, skip } = getPagination(req.query);
+
+    const { results: collections, total } =
+      await queryWithCount(Collection, { category: "figure" }, null, skip, limit);
+
+    res.json({
+      collections,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error("Error fetching figure collections:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -105,7 +107,7 @@ router.get("/mangas", protectRoute,  async (req, res) => {
 })
 
 // Fetch comic collections
-router.get("/comics", protectRoute, async (req, res) => {
+router.get("/comics", protectRoute,  async (req, res) => {
   try {
     const comicCollections = await Collection.find({ category: "comic"})
       .sort({ createdAt: -1})
