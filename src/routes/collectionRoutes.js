@@ -146,7 +146,7 @@ router.get("/comics", protectRoute,  async (req, res) => {
 })
 
 // Fetch status collections
-router.get("/statuses",  async (req, res) => {
+router.get("/statuses", protectRoute, async (req, res) => {
   try {
 
     const statuses = await Collection.distinct("status")
