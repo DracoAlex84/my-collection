@@ -129,6 +129,17 @@ router.get("/comics", protectRoute,  async (req, res) => {
   }
 })
 
+// Fetch brand collections
+router.get("/brands", protectRoute,  async (req, res) => {
+  try {
+    const brands = await Collection.distinct("brand");    
+    res.json(brands.sort());
+  } catch (error) {
+    console.error("Error fetching brand collections:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
 // Create collection
 router.post("/", protectRoute, upload.single("image"), async (req, res) => {
     try {
