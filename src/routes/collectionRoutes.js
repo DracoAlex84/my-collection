@@ -145,16 +145,16 @@ router.get("/comics", protectRoute,  async (req, res) => {
   }
 })
 
-// Fetch brand collections
-router.get("/brands", protectRoute, async (req, res) => {
+// Fetch status collections
+router.get("/statuses",  async (req, res) => {
   try {
 
-    const brands = await Collection.distinct("brand")
+    const statuses = await Collection.distinct("status")
       .sort({ createdAt: -1})
       .populate("user", "username profilePicture");
-      res.json(brands);
+      res.json(statuses);
   } catch (error) {
-    console.error("Error fetching brands:", error.message, error.stack);
+    console.error("Error fetching statuses:", error.message, error.stack);
     res.status(500).json({ message: "Internal server error" });
   }
 })
