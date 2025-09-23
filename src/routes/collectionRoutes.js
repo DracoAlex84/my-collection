@@ -106,10 +106,18 @@ router.get("/figures", protectRoute,  async (req, res) => {
 // Fetch manga collections
 router.get("/mangas", protectRoute,  async (req, res) => {
   try {
-    const mangaCollections = await Collection.find({ category: "manga"})
-      .sort({ createdAt: -1})
-      .populate("user", "username profilePicture");
-      res.json(mangaCollections);
+    const { page, limit, skip } = getPagination(req.query);
+
+    const { results: collections, total } =
+      await queryWithCount(Collection, { category: "manga" }, null, skip, limit);
+
+    res.json({
+      collections,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error("Error fetching manga collections:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -119,10 +127,18 @@ router.get("/mangas", protectRoute,  async (req, res) => {
 // Fetch comic collections
 router.get("/comics", protectRoute,  async (req, res) => {
   try {
-    const comicCollections = await Collection.find({ category: "comic"})
-      .sort({ createdAt: -1})
-      .populate("user", "username profilePicture");
-      res.json(comicCollections);
+     const { page, limit, skip } = getPagination(req.query);
+
+    const { results: collections, total } =
+      await queryWithCount(Collection, { category: "comic" }, null, skip, limit);
+
+    res.json({
+      collections,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error("Error fetching comic collections:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -130,7 +146,7 @@ router.get("/comics", protectRoute,  async (req, res) => {
 })
 
 // Fetch brand collections
-router.get("/brands",   async (req, res) => {
+router.get("/brands", protectRoute, async (req, res) => {
   try {
 
     const brands = await Collection.distinct("brand")
@@ -238,7 +254,7 @@ router.get("/:id", protectRoute, async (req, res)=>{
 //Modify collection
 router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
   try {
-      const { status, price, currency } = req.body;
+      const { status, price, currency, brand } = req.body;
 
       const collection = await Collection.findById(req.params.id);
 
@@ -272,6 +288,7 @@ router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
         uploadedImageUrl = uploadedImage.secure_url;
       }
 
+      collection.brand = brand || collection.brand;
       collection.status = status || collection.status;
       collection.price = price || collection.price;
       collection.currency = currency || collection.currency;
