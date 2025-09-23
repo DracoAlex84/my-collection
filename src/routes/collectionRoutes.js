@@ -130,24 +130,15 @@ router.get("/comics", protectRoute,  async (req, res) => {
 })
 
 // Fetch brand collections
-router.get("/brands", protectRoute,  async (req, res) => {
+router.get("/brands",   async (req, res) => {
   try {
 
-    const { page, limit, skip } = getPagination(req.query);
-
-    const { results: collections, total } =
-      await queryWithCount(Collection.distinct("brand"), null, skip, limit);
-
-      
-    res.json({
-      collections,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    });
+    const brands = await Collection.distinct("brand")
+      .sort({ createdAt: -1})
+      .populate("user", "username profilePicture");
+      res.json(brands);
   } catch (error) {
-    console.error("Error fetching brand collections:", error);
+    console.error("Error fetching brands:", error.message, error.stack);
     res.status(500).json({ message: "Internal server error" });
   }
 })
