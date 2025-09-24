@@ -145,6 +145,27 @@ router.get("/comics", protectRoute,  async (req, res) => {
   }
 })
 
+// Fetch book collections
+router.get("/books", protectRoute,  async (req, res) => {
+  try {
+     const { page, limit, skip } = getPagination(req.query);
+
+    const { results: collections, total } =
+      await queryWithCount(Collection, { category: "book" }, null, skip, limit);
+
+    res.json({
+      collections,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error("Error fetching book collections:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+})
+
 // Fetch status collections
 router.get("/statuses", protectRoute, async (req, res) => {
   try {
