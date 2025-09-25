@@ -51,23 +51,12 @@ export function buildFilter(query, searchableFields) {
   );
 
   if (normalized.q) {
-    const re = new RegExp(escapeRegex(normalized.q), "i");
+    const re = new RegExp(escapeRegex(normalized.q.slice(0, 100)), "i");
     filter.$or = searchableFields.map(field => ({ [field]: { $regex: re } }));
   }
 
-  const fieldMap = {
-    name: "title",
-    brand: "brand",
-    author: "author",
-    status: "status"
-  };
-
-  for (const [param, field] of Object.entries(fieldMap)) {
-    if (normalized[param]) {
-      filter[field] = { 
-        $regex: new RegExp(escapeRegex(normalized[param].slice(0, 100)), "i") 
-      };
-    }
+   if (normalized.status) {
+    filter.status = { $regex: new RegExp(escapeRegex(normalized.status.slice(0, 100)), "i") };
   }
 
   return filter;
