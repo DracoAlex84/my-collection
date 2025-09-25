@@ -42,3 +42,33 @@ export async function queryWithCount(model, filter,  skip, limit) {
 
   return { results, total };
 }
+
+export function buildFilter(query, searchableFields) {
+  let filter = {};
+  
+  const normalized = Object.fromEntries(
+    Object.entries(query).map(([key, value]) => [key, (value || "").trim()])
+  );
+
+  if (normalized.q) {
+    const re = new RegExp(escapeRegex(normalized.q), "i");
+    filter.$or = searchableFields.map(field => ({ [field]: { $regex: re } }));
+  }
+
+  const fieldMap = {
+    name: "title",
+    brand: "brand",
+    author: "author",
+    status: "status"
+  };
+
+  for (const [param, field] of Object.entries(fieldMap)) {
+    if (normalized[param]) {
+      filter[field] = { 
+        $regex: new RegExp(escapeRegex(normalized[param].slice(0, 100)), "i") 
+      };
+    }
+  }
+
+  return filter;
+}

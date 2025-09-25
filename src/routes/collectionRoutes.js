@@ -3,7 +3,7 @@ import cloudinary from "../lib/cloudinary.js";
 import Collection from "../models/Collections.js";
 import protectRoute from "../middleware/auth.middleware.js";
 import multer from "multer";
-import { escapeRegex, getPagination, queryWithCount } from "../utils/getPublicIdFromUrl.js";
+import { buildFilter, escapeRegex, getPagination, queryWithCount } from "../utils/getPublicIdFromUrl.js";
 
 const router = express.Router();
 
@@ -31,38 +31,12 @@ router.get("/user", protectRoute, async (req, res) => {
 // Fetch all collections created by user
 router.get("/",  protectRoute, async (req, res) => {
   try {
-    const rawQ = (req.query.q || "").trim();
-    const rawName = (req.query.name || "").trim();
-    const rawBrand = (req.query.brand || "").trim();
-    const rawAuthor = (req.query.author || "").trim();
-    const rawStatus = (req.query.status || "").trim();
+    
 
     // Pagination
     const { page, limit, skip } = getPagination(req.query);
 
-    let filter = {}
-
-    if (rawQ) {
-      const re = new RegExp(escapeRegex(rawQ.slice(0, 100)), "i");
-      filter.$or = [
-        { title: { $regex: re} },
-        { author: { $regex: re} },
-        { brand: { $regex: re} }
-      ]
-    }
-    
-    if (rawName) {
-      filter.title = { $regex: new RegExp(escapeRegex(rawName.slice(0, 100)), "i") };
-    }
-    if (rawBrand) {
-      filter.brand = { $regex: new RegExp(escapeRegex(rawBrand.slice(0, 100)), "i") };
-    }
-    if (rawAuthor) {
-      filter.author = { $regex: new RegExp(escapeRegex(rawAuthor.slice(0, 100)), "i") };
-    }
-    if (rawStatus) {
-      filter.status = { $regex: new RegExp(escapeRegex(rawStatus.slice(0, 100)), "i") };
-    }
+    const filter = buildFilter(req.query);
 
     const { results: collections, total } =
       await queryWithCount(Collection, filter, null, skip, limit);
@@ -87,8 +61,12 @@ router.get("/figures", protectRoute,  async (req, res) => {
 
     const { page, limit, skip } = getPagination(req.query);
 
+    const filter = buildFilter(req.query);
+
+    filter.category = "figure";
+
     const { results: collections, total } =
-      await queryWithCount(Collection, { category: "figure" }, null, skip, limit);
+      await queryWithCount(Collection, filter, null, skip, limit);
 
     res.json({
       collections,
@@ -108,8 +86,12 @@ router.get("/mangas", protectRoute,  async (req, res) => {
   try {
     const { page, limit, skip } = getPagination(req.query);
 
+    const filter = buildFilter(req.query);
+
+    filter.category = "manga";
+
     const { results: collections, total } =
-      await queryWithCount(Collection, { category: "manga" }, null, skip, limit);
+      await queryWithCount(Collection, filter, null, skip, limit);
 
     res.json({
       collections,
@@ -129,8 +111,12 @@ router.get("/comics", protectRoute,  async (req, res) => {
   try {
      const { page, limit, skip } = getPagination(req.query);
 
+    const filter = buildFilter(req.query);
+
+    filter.category = "comic";
+
     const { results: collections, total } =
-      await queryWithCount(Collection, { category: "comic" }, null, skip, limit);
+      await queryWithCount(Collection, filter, null, skip, limit);
 
     res.json({
       collections,
@@ -150,8 +136,12 @@ router.get("/books", protectRoute,  async (req, res) => {
   try {
      const { page, limit, skip } = getPagination(req.query);
 
+    const filter = buildFilter(req.query);
+
+    filter.category = "book";
+
     const { results: collections, total } =
-      await queryWithCount(Collection, { category: "book" }, null, skip, limit);
+      await queryWithCount(Collection, filter, null, skip, limit);
 
     res.json({
       collections,
