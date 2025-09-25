@@ -43,7 +43,7 @@ export async function queryWithCount(model, filter,  skip, limit) {
   return { results, total };
 }
 
-export function buildFilter(query, searchableFields) {
+export function buildFilter(query, searchableFields = ["title", "author", "brand"]) {
   let filter = {};
   
   const normalized = Object.fromEntries(
