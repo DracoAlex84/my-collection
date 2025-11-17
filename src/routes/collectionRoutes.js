@@ -171,7 +171,7 @@ router.get("/statuses", protectRoute, async (req, res) => {
 })
 
 // Create collection
-router.post("/", protectRoute, upload.single("image"), async (req, res) => {
+router.post("/", protectRoute, upload.array("images"), async (req, res) => {
     try {
         const { title, caption, category, status, brand, author, price, currency } = req.body;
 
@@ -179,40 +179,50 @@ router.post("/", protectRoute, upload.single("image"), async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        if (!req.file) {
-            return res.status(400).json({ message: "Image file is required" });
-        }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one image file is required" });
+    }
 
-        // Upload image to Cloudinary using buffer
-        const streamUpload = (buffer) => {
-            return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    { folder: "collections" },
-                    (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                    }
-                );
-                stream.end(buffer);
-            });
-        };
+    // Upload buffer files to Cloudinary using stream
+    const streamUpload = (buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "collections" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(buffer);
+      });
+    };
 
-        // Upload image to Cloudinary
-        const uploadedImage = await streamUpload(req.file.buffer);
+    const uploadedResults = [];
+    for (const file of req.files) {
+      const uploaded = await streamUpload(file.buffer);
+      uploadedResults.push(uploaded);
+    }
 
-        // Save collection to MongoDB
-        const newCollection = new Collection({
-            title,
-            caption,
-            author,
-            price, 
-            currency,
-            image: uploadedImage.secure_url,
-            category,
-            status,
-            brand,
-            user: req.user._id,
-        });
+    // Build arrays of URLs and public ids
+    const imagesUrls = uploadedResults.map(r => r.secure_url);
+    const imagesPublicIds = uploadedResults.map(r => r.public_id);
+
+    // Save collection to MongoDB
+    const newCollection = new Collection({
+      title,
+      caption,
+      author,
+      price,
+      currency,
+      image: imagesUrls[0] || null, // legacy single image (first)
+      imagePublicId: imagesPublicIds[0] || null,
+      images: imagesUrls,
+      imagePublicIds: imagesPublicIds,
+      category,
+      status,
+      brand,
+      user: req.user._id,
+    });
 
         await newCollection.save();
         res.status(201).json(newCollection);
@@ -263,7 +273,7 @@ router.get("/:id", protectRoute, async (req, res)=>{
 
 
 //Modify collection
-router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
+router.put("/:id", protectRoute, upload.array("images"), async (req, res)=>{
   try {
       const { status, price, currency, brand } = req.body;
 
@@ -276,34 +286,47 @@ router.put("/:id", protectRoute, upload.single("image"), async (req, res)=>{
         return res.status(403).json({ message: "You are not authorized to modify this collection" });
       }
 
-      // Keep actual image
-      let uploadedImageUrl = collection.image
+    // Keep existing values
+    let uploadedImageUrl = collection.image;
+    let uploadedImagePublicId = collection.imagePublicId;
 
-      // If new image is provided, upload it to Cloudinary
-      if (req.file) {
-        const streamUpload = (buffer) => {
-            return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    { folder: "collections" },
-                    (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                    }
-                );
-                stream.end(buffer);
-            });
-        };
+    // If new files are provided, upload each to Cloudinary and replace arrays
+    if (req.files && req.files.length > 0) {
+    const streamUpload = (buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "collections" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(buffer);
+      });
+    };
 
-        // Upload image to Cloudinary
-        const uploadedImage = await streamUpload(req.file.buffer);
-        uploadedImageUrl = uploadedImage.secure_url;
-      }
+    const uploadedResults = [];
+    for (const file of req.files) {
+      const uploaded = await streamUpload(file.buffer);
+      uploadedResults.push(uploaded);
+    }
 
-      collection.brand = brand || collection.brand;
-      collection.status = status || collection.status;
-      collection.price = price || collection.price;
-      collection.currency = currency || collection.currency;
-      collection.image = uploadedImageUrl;
+    const imagesUrls = uploadedResults.map(r => r.secure_url);
+    const imagesPublicIds = uploadedResults.map(r => r.public_id);
+
+    uploadedImageUrl = imagesUrls[0] || uploadedImageUrl;
+    uploadedImagePublicId = imagesPublicIds[0] || uploadedImagePublicId;
+
+    collection.images = imagesUrls;
+    collection.imagePublicIds = imagesPublicIds;
+    }
+
+    collection.brand = brand || collection.brand;
+    collection.status = status || collection.status;
+    collection.price = price || collection.price;
+    collection.currency = currency || collection.currency;
+    collection.image = uploadedImageUrl;
+    collection.imagePublicId = uploadedImagePublicId;
 
       
       await collection.save();
@@ -328,23 +351,32 @@ router.delete("/:id", protectRoute, async (req, res) => {
       return res.status(403).json({ message: "You are not authorized to delete this collection" });
     }
 
-    // Delete image by public_id if it exist
-    
-     if (collection && collection.image) {
-      // Example: https://res.cloudinary.com/<cloud_name>/image/upload/v1234567890/collections/filename.jpg
-      const urlParts = collection.image.split("/");
-      const uploadIndex = urlParts.findIndex(part => part === "upload");
-      // Get everything after 'upload/' and before file extension
-      const publicIdWithVersion = urlParts.slice(uploadIndex + 1).join("/"); // collections/filename.jpg or v1234567890/collections/filename.jpg
-      // Remove version if present (starts with 'v' and numbers)
-      const publicId = publicIdWithVersion.replace(/v\d+\//, "").replace(/\.[^/.]+$/, ""); // collections/filename
-
-      try {
-        await cloudinary.uploader.destroy(publicId);
-        console.log("Image deleted from Cloudinary:", publicId);
-      } catch (err) {
-        console.log("Cloudinary delete error:", err.message);
+    // Delete images by public_id(s) if they exist
+    try {
+      if (collection && Array.isArray(collection.imagePublicIds) && collection.imagePublicIds.length > 0) {
+        for (const publicId of collection.imagePublicIds) {
+          try {
+            await cloudinary.uploader.destroy(publicId);
+            console.log("Image deleted from Cloudinary:", publicId);
+          } catch (err) {
+            console.log("Cloudinary delete error for", publicId, err.message);
+          }
+        }
+      } else if (collection && collection.image) {
+        // Fallback: parse public id from single image URL
+        const urlParts = collection.image.split("/");
+        const uploadIndex = urlParts.findIndex(part => part === "upload");
+        const publicIdWithVersion = urlParts.slice(uploadIndex + 1).join("/");
+        const publicId = publicIdWithVersion.replace(/v\d+\//, "").replace(/\.[^/.]+$/, "");
+        try {
+          await cloudinary.uploader.destroy(publicId);
+          console.log("Image deleted from Cloudinary:", publicId);
+        } catch (err) {
+          console.log("Cloudinary delete error:", err.message);
+        }
       }
+    } catch (err) {
+      console.log("Cloudinary deletion error:", err.message);
     }
     
     await collection.deleteOne();

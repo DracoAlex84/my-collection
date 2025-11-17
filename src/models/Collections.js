@@ -14,12 +14,22 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    // Keep legacy single-image fields for compatibility, but also store arrays for multiple images
     image: {
         type: String,
         required: true,
     },
     imagePublicId: {
         type: String,
+    },
+    // New: support multiple images
+    images: {
+        type: [String],
+        default: [],
+    },
+    imagePublicIds: {
+        type: [String],
+        default: [],
     },
     author: {
         type: String,
