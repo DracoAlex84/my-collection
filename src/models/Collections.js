@@ -57,6 +57,10 @@ const userSchema = new mongoose.Schema({
         default: "owned",
         required: true,
     },
+    releaseDate: {
+        type: String,
+        required: true,
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
