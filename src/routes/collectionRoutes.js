@@ -179,11 +179,7 @@ router.get("/statuses", protectRoute, async (req, res) => {
 })
 
 // Create collection
-<<<<<<< HEAD
-router.post("/", protectRoute, upload.array("images"), async (req, res) => {
-=======
 router.post("/", protectRoute, upload.any(), async (req, res) => {
->>>>>>> c4965cf8b9fa8c2299385d032be9a0c69f622768
     try {
         const { title, caption, category, status, brand, author, price, currency } = req.body;
 
@@ -191,31 +187,6 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-<<<<<<< HEAD
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "At least one image file is required" });
-    }
-
-    // Upload buffer files to Cloudinary using stream
-    const streamUpload = (buffer) => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "collections" },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        stream.end(buffer);
-      });
-    };
-
-    const uploadedResults = [];
-    for (const file of req.files) {
-      const uploaded = await streamUpload(file.buffer);
-      uploadedResults.push(uploaded);
-    }
-=======
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: "Image file is required" });
         }
@@ -238,7 +209,6 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
 
         // Upload image to Cloudinary
         const uploadedImage = await streamUpload(imageFile.buffer);
->>>>>>> c4965cf8b9fa8c2299385d032be9a0c69f622768
 
     // Build arrays of URLs and public ids
     const imagesUrls = uploadedResults.map(r => r.secure_url);
@@ -310,11 +280,7 @@ router.get("/:id", protectRoute, async (req, res)=>{
 
 
 //Modify collection
-<<<<<<< HEAD
-router.put("/:id", protectRoute, upload.array("images"), async (req, res)=>{
-=======
 router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
->>>>>>> c4965cf8b9fa8c2299385d032be9a0c69f622768
   try {
       const { status, price, currency, brand } = req.body;
 
@@ -331,28 +297,6 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
     let uploadedImageUrl = collection.image;
     let uploadedImagePublicId = collection.imagePublicId;
 
-<<<<<<< HEAD
-    // If new files are provided, upload each to Cloudinary and replace arrays
-    if (req.files && req.files.length > 0) {
-    const streamUpload = (buffer) => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "collections" },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        stream.end(buffer);
-      });
-    };
-
-    const uploadedResults = [];
-    for (const file of req.files) {
-      const uploaded = await streamUpload(file.buffer);
-      uploadedResults.push(uploaded);
-    }
-=======
       // If new image is provided, upload it to Cloudinary
       if (req.files && req.files.length > 0) {
         const imageFile = req.files[0];
@@ -373,7 +317,6 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
         const uploadedImage = await streamUpload(imageFile.buffer);
         uploadedImageUrl = uploadedImage.secure_url;
       }
->>>>>>> c4965cf8b9fa8c2299385d032be9a0c69f622768
 
     const imagesUrls = uploadedResults.map(r => r.secure_url);
     const imagesPublicIds = uploadedResults.map(r => r.public_id);
@@ -383,7 +326,7 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
 
     collection.images = imagesUrls;
     collection.imagePublicIds = imagesPublicIds;
-    }
+    
 
     collection.brand = brand || collection.brand;
     collection.status = status || collection.status;
