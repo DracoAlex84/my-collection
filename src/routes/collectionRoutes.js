@@ -297,6 +297,7 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
     // Keep existing values
     let uploadedImageUrl = collection.image;
     let uploadedImagePublicId = collection.imagePublicId;
+    let uploadedImage = null;
 
       // If new image is provided, upload it to Cloudinary
       if (req.files && req.files.length > 0) {
@@ -315,7 +316,7 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
         };
 
         // Upload image to Cloudinary
-        const uploadedImage = await streamUpload(imageFile.buffer);
+        uploadedImage = await streamUpload(imageFile.buffer);
         uploadedImageUrl = uploadedImage.secure_url;
       }
 
