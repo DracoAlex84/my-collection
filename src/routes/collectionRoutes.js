@@ -211,8 +211,8 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
         const uploadedImage = await streamUpload(imageFile.buffer);
 
     // Build arrays of URLs and public ids
-    const imagesUrls = uploadedResults.map(r => r.secure_url);
-    const imagesPublicIds = uploadedResults.map(r => r.public_id);
+    const imagesUrls = [uploadedImage].map(r => r.secure_url);
+    const imagesPublicIds = [uploadedImage].map(r => r.public_id);
 
     // Save collection to MongoDB
     const newCollection = new Collection({
@@ -319,8 +319,8 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
         uploadedImageUrl = uploadedImage.secure_url;
       }
 
-    const imagesUrls = uploadedResults.map(r => r.secure_url);
-    const imagesPublicIds = uploadedResults.map(r => r.public_id);
+    const imagesUrls = uploadedImage ? [uploadedImage].map(r => r.secure_url) : [uploadedImageUrl];
+    const imagesPublicIds = uploadedImage ? [uploadedImage].map(r => r.public_id) : [uploadedImagePublicId];
 
     uploadedImageUrl = imagesUrls[0] || uploadedImageUrl;
     uploadedImagePublicId = imagesPublicIds[0] || uploadedImagePublicId;
