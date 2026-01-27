@@ -284,7 +284,7 @@ router.get("/:id", protectRoute, async (req, res)=>{
 //Modify collection
 router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
   try {
-      const { status, price, currency, brand, releaseDate } = req.body;
+      const { status, price, currency, brand, releaseDate, shoppingLink } = req.body;
 
       const collection = await Collection.findById(req.params.id);
 
