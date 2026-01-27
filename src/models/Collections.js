@@ -63,6 +63,7 @@ const userSchema = new mongoose.Schema({
     },
     shoppingLink: {
         type: String, 
+        default: "",
         required: true,
     },
     user: {
