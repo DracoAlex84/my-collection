@@ -181,9 +181,9 @@ router.get("/statuses", protectRoute, async (req, res) => {
 // Create collection
 router.post("/", protectRoute, upload.any(), async (req, res) => {
     try {
-        const { title, caption, category, status, brand, author, price, currency, releaseDate } = req.body;
+        const { title, caption, category, status, brand, author, price, currency, releaseDate, shoppingLink } = req.body;
 
-        if (!title || !caption || !category || !status || !brand || !author || !price || !currency || !releaseDate) {
+        if (!title || !caption || !category || !status || !brand || !author || !price || !currency || !releaseDate || !shoppingLink) {
             return res.status(400).json({ message: "All fields are required" });
         }
 
@@ -229,6 +229,7 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
       status,
       brand,
       releaseDate,
+      shoppingLink,
       user: req.user._id,
     });
 
@@ -337,6 +338,7 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
     collection.image = uploadedImageUrl;
     collection.imagePublicId = uploadedImagePublicId;
     collection.releaseDate = releaseDate || collection.releaseDate;
+    collection.shoppingLink = shoppingLink || collection.shoppingLink;
 
       
       await collection.save();
