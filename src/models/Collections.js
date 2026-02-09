@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { format } from "date-fns";
 
 // Create a schema for the Collection model
 const userSchema = new mongoose.Schema({
@@ -60,18 +61,11 @@ const userSchema = new mongoose.Schema({
     releaseDate: {
         type: Date,
         required: true,
-        formatted: "MM-YYYY",
+        default: new Date(),
     },
     shoppingLink: {
         type: String, 
         default: "",
-        set: v => {
-            if (typeof v === 'string') {
-            const [mm, yyyy] = v.split('-');
-            return new Date(Number(yyyy), Number(mm) - 1, 1);
-            }
-            return v;
-        }
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,

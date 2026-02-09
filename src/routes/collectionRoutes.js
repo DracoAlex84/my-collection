@@ -4,6 +4,7 @@ import Collection from "../models/Collections.js";
 import protectRoute from "../middleware/auth.middleware.js";
 import multer from "multer";
 import { buildFilter, escapeRegex, getPagination, queryWithCount } from "../utils/getPublicIdFromUrl.js";
+import { format } from "date-fns";
 
 const router = express.Router();
 
@@ -228,7 +229,7 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
       category,
       status,
       brand,
-      releaseDate,
+      releaseDate: format(releaseDate, "MM-yyyy"),
       shoppingLink,
       user: req.user._id,
     });
