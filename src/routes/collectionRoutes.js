@@ -4,7 +4,6 @@ import Collection from "../models/Collections.js";
 import protectRoute from "../middleware/auth.middleware.js";
 import multer from "multer";
 import { buildFilter, escapeRegex, getPagination, queryWithCount } from "../utils/getPublicIdFromUrl.js";
-import { format } from "date-fns";
 
 const router = express.Router();
 
@@ -192,6 +191,19 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
             return res.status(400).json({ message: "Image file is required" });
         }
 
+        // releaseDate viene como "MM-YYYY", ej: "09-2026"
+        let parsedReleaseDate = null;
+
+        if (releaseDate) {
+          if (!/^\d{2}-\d{4}$/.test(releaseDate)) {
+            return res.status(400).json({ message: "Invalid releaseDate format. Use MM-YYYY" });
+          }
+
+          const [month, year] = releaseDate.split("-");
+          parsedReleaseDate = new Date(Number(year), Number(month) - 1, 1);
+        }
+
+
         const imageFile = req.files[0];
 
         // Upload image to Cloudinary using buffer
@@ -215,6 +227,7 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
     const imagesUrls = [uploadedImage].map(r => r.secure_url);
     const imagesPublicIds = [uploadedImage].map(r => r.public_id);
 
+
     // Save collection to MongoDB
     const newCollection = new Collection({
       title,
@@ -229,7 +242,7 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
       category,
       status,
       brand,
-      releaseDate: format(releaseDate, "MM-yyyy"),
+      releaseDate: parsedReleaseDate,
       shoppingLink,
       user: req.user._id,
     });
@@ -334,11 +347,18 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
 
     collection.brand = brand || collection.brand;
     collection.status = status || collection.status;
-    collection.price = price || collection.price;
+    collection.price = price || collection.price;h
     collection.currency = currency || collection.currency;
     collection.image = uploadedImageUrl;
     collection.imagePublicId = uploadedImagePublicId;
-    collection.releaseDate = releaseDate || collection.releaseDate;
+    if (releaseDate) {
+      if (!/^\d{2}-\d{4}$/.test(releaseDate)) {
+        return res.status(400).json({ message: "Invalid releaseDate format. Use MM-YYYY" });
+      }
+
+      const [month, year] = releaseDate.split("-");
+      collection.releaseDate = new Date(Number(year), Number(month) - 1, 1);
+    }
     collection.shoppingLink = shoppingLink || collection.shoppingLink;
 
       
