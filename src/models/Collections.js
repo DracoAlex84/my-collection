@@ -58,7 +58,7 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     releaseDate: {
-        type: String,
+        type: Date,
         required: true,
     },
     shoppingLink: {
