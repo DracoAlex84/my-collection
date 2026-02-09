@@ -60,12 +60,18 @@ const userSchema = new mongoose.Schema({
     releaseDate: {
         type: Date,
         required: true,
-        formated: "MM-YYYY",
+        formatted: "MM-YYYY",
     },
     shoppingLink: {
         type: String, 
         default: "",
-        required: true,
+        set: v => {
+            if (typeof v === 'string') {
+            const [mm, yyyy] = v.split('-');
+            return new Date(Number(yyyy), Number(mm) - 1, 1);
+            }
+            return v;
+        }
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
