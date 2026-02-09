@@ -60,6 +60,7 @@ const userSchema = new mongoose.Schema({
     releaseDate: {
         type: Date,
         required: true,
+        formated: "MM-YYYY",
     },
     shoppingLink: {
         type: String, 
