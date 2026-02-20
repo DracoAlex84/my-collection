@@ -347,7 +347,7 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
 
     collection.brand = brand || collection.brand;
     collection.status = status || collection.status;
-    collection.price = price || collection.price;h
+    collection.price = price || collection.price;
     collection.currency = currency || collection.currency;
     collection.image = uploadedImageUrl;
     collection.imagePublicId = uploadedImagePublicId;
