@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["owned", "whishlist", "preorder", "deposit"],
+        enum: ["owned", "whishlist", "preorder", "deposit", "full payment"],
         default: "owned",
         required: true,
     },
