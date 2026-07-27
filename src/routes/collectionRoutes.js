@@ -191,19 +191,6 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
             return res.status(400).json({ message: "Image file is required" });
         }
 
-        // releaseDate viene como "MM-YYYY", ej: "09-2026"
-        let parsedReleaseDate = null;
-
-        if (releaseDate) {
-          if (!/^\d{2}-\d{4}$/.test(releaseDate)) {
-            return res.status(400).json({ message: "Invalid releaseDate format. Use MM-YYYY" });
-          }
-
-          const [month, year] = releaseDate.split("-");
-          parsedReleaseDate = new Date(Number(year), Number(month) - 1, 1);
-        }
-
-
         const imageFile = req.files[0];
 
         // Upload image to Cloudinary using buffer
@@ -227,7 +214,6 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
     const imagesUrls = [uploadedImage].map(r => r.secure_url);
     const imagesPublicIds = [uploadedImage].map(r => r.public_id);
 
-
     // Save collection to MongoDB
     const newCollection = new Collection({
       title,
@@ -242,7 +228,7 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
       category,
       status,
       brand,
-      releaseDate: parsedReleaseDate,
+      releaseDate,
       shoppingLink,
       user: req.user._id,
     });
@@ -351,14 +337,7 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
     collection.currency = currency || collection.currency;
     collection.image = uploadedImageUrl;
     collection.imagePublicId = uploadedImagePublicId;
-    if (releaseDate) {
-      if (!/^\d{2}-\d{4}$/.test(releaseDate)) {
-        return res.status(400).json({ message: "Invalid releaseDate format. Use MM-YYYY" });
-      }
-
-      const [month, year] = releaseDate.split("-");
-      collection.releaseDate = new Date(Number(year), Number(month) - 1, 1);
-    }
+    collection.releaseDate = releaseDate || collection.releaseDate;
     collection.shoppingLink = shoppingLink || collection.shoppingLink;
 
       

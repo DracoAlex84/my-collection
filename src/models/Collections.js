@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { format } from "date-fns";
 
 // Create a schema for the Collection model
 const userSchema = new mongoose.Schema({
@@ -54,18 +53,18 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["owned", "whishlist", "preorder", "deposit", "full payment"],
+        enum: ["upcoming", "owned", "whishlist", "preorder", "deposit", "full payment"],
         default: "owned",
         required: true,
     },
     releaseDate: {
-        type: Date,
+        type: String,
         required: true,
-        default: new Date(),
     },
     shoppingLink: {
         type: String, 
         default: "",
+        required: true,
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,
