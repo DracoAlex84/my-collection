@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["upcoming", "owned", "whishlist", "preorder", "deposit", "full payment"],
+        enum: ["upcoming", "owned", "wishlist", "preorder", "deposit", "full payment"],
         default: "owned",
         required: true,
     },
