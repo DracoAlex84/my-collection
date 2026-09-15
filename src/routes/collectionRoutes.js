@@ -331,6 +331,10 @@ router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
     collection.imagePublicIds = imagesPublicIds;
     
 
+    collection.title = title || collection.title;
+    collection.caption = caption || collection.caption;
+    collection.category = category || collection.category;
+    collection.author = author || collection.author;
     collection.brand = brand || collection.brand;
     collection.status = status || collection.status;
     collection.price = price || collection.price;
