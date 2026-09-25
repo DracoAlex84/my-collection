@@ -29,14 +29,17 @@ export function getPagination  (query) {
   return { page, limit, skip}; 
 }
 
-export async function queryWithCount(model, filter,  skip, limit) {
+export async function queryWithCount(model, filter = {}, skip = 0, limit = 10) {
+  const safeSkip = Number.isFinite(skip) ? skip : 0;
+  const safeLimit = Number.isFinite(limit) ? limit : 10;
+
   const [results, total] = await Promise.all([
     model.find(filter)
-         .sort({ createdAt: -1 })   // o configurable
-         .skip(skip)
-         .limit(limit)
-         .populate("user", "username profilePicture")
-         .lean(),
+      .sort({ createdAt: -1 })
+      .skip(safeSkip)
+      .limit(safeLimit)
+      .populate("user", "username profilePicture")
+      .lean(),
     model.countDocuments(filter)
   ]);
 

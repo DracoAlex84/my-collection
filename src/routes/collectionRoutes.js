@@ -167,11 +167,9 @@ router.get("/books", protectRoute,  async (req, res) => {
 // Fetch status collections
 router.get("/statuses", protectRoute, async (req, res) => {
   try {
-
-    const statuses = await Collection.distinct("status")
-      .sort({ createdAt: -1})
-      .populate("user", "username profilePicture");
-      res.json(statuses);
+    const statuses = await Collection.distinct("status");
+    const sortedStatuses = [...new Set(statuses)].sort((a, b) => a.localeCompare(b));
+    res.json(sortedStatuses);
   } catch (error) {
     console.error("Error fetching statuses:", error.message, error.stack);
     res.status(500).json({ message: "Internal server error" });
@@ -241,33 +239,6 @@ router.post("/", protectRoute, upload.any(), async (req, res) => {
     }
 });
 
-// Fetch all collections route with pagination
-router.get("/", protectRoute, async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const skip = (page - 1) * limit;
-
-    const collections = await Collection.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("user", "username profilePicture");
-
-    const totalCollections = await Collection.countDocuments();
-
-    res.send({
-      collections,
-      currentPage: page,
-      totalCollections,
-      totalPages: Math.ceil(totalCollections / limit),
-    });
-  } catch (error) {
-    console.log("Error fetching collections:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
 // Get single collection by ID
 router.get("/:id", protectRoute, async (req, res)=>{
   try {
@@ -284,70 +255,87 @@ router.get("/:id", protectRoute, async (req, res)=>{
 //Modify collection
 router.put("/:id", protectRoute, upload.any(), async (req, res)=>{
   try {
-      const { status, price, currency, brand, releaseDate, shoppingLink } = req.body;
+    const {
+      title,
+      caption,
+      category,
+      author,
+      status,
+      price,
+      currency,
+      brand,
+      releaseDate,
+      shoppingLink,
+    } = req.body;
 
-      const collection = await Collection.findById(req.params.id);
+    const collection = await Collection.findById(req.params.id);
 
-      if (!collection) return res.status(404).json({ message: "Collection not found" });
+    if (!collection) return res.status(404).json({ message: "Collection not found" });
 
-      // Authorization
-      if (collection.user.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: "You are not authorized to modify this collection" });
-      }
+    // Authorization
+    if (collection.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "You are not authorized to modify this collection" });
+    }
 
     // Keep existing values
     let uploadedImageUrl = collection.image;
     let uploadedImagePublicId = collection.imagePublicId;
     let uploadedImage = null;
 
-      // If new image is provided, upload it to Cloudinary
-      if (req.files && req.files.length > 0) {
-        const imageFile = req.files[0];
-        const streamUpload = (buffer) => {
-            return new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    { folder: "collections" },
-                    (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                    }
-                );
-                stream.end(buffer);
-            });
-        };
+    // If new image is provided, upload it to Cloudinary
+    if (req.files && req.files.length > 0) {
+      const imageFile = req.files[0];
+      const streamUpload = (buffer) => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "collections" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(buffer);
+        });
+      };
 
-        // Upload image to Cloudinary
-        uploadedImage = await streamUpload(imageFile.buffer);
-        uploadedImageUrl = uploadedImage.secure_url;
-      }
+      uploadedImage = await streamUpload(imageFile.buffer);
+      uploadedImageUrl = uploadedImage.secure_url;
+      uploadedImagePublicId = uploadedImage.public_id;
+    }
 
-    const imagesUrls = uploadedImage ? [uploadedImage].map(r => r.secure_url) : [uploadedImageUrl];
-    const imagesPublicIds = uploadedImage ? [uploadedImage].map(r => r.public_id) : [uploadedImagePublicId];
+    const imagesUrls = uploadedImage
+      ? [uploadedImage.secure_url]
+      : (Array.isArray(collection.images) && collection.images.length
+        ? collection.images
+        : (uploadedImageUrl ? [uploadedImageUrl] : []));
+
+    const imagesPublicIds = uploadedImage
+      ? [uploadedImage.public_id]
+      : (Array.isArray(collection.imagePublicIds) && collection.imagePublicIds.length
+        ? collection.imagePublicIds
+        : (uploadedImagePublicId ? [uploadedImagePublicId] : []));
 
     uploadedImageUrl = imagesUrls[0] || uploadedImageUrl;
     uploadedImagePublicId = imagesPublicIds[0] || uploadedImagePublicId;
 
     collection.images = imagesUrls;
     collection.imagePublicIds = imagesPublicIds;
-    
 
-    collection.title = title || collection.title;
-    collection.caption = caption || collection.caption;
-    collection.category = category || collection.category;
-    collection.author = author || collection.author;
-    collection.brand = brand || collection.brand;
-    collection.status = status || collection.status;
-    collection.price = price || collection.price;
-    collection.currency = currency || collection.currency;
+    collection.title = title ?? collection.title;
+    collection.caption = caption ?? collection.caption;
+    collection.category = category ?? collection.category;
+    collection.author = author ?? collection.author;
+    collection.brand = brand ?? collection.brand;
+    collection.status = status ?? collection.status;
+    collection.price = price ?? collection.price;
+    collection.currency = currency ?? collection.currency;
     collection.image = uploadedImageUrl;
     collection.imagePublicId = uploadedImagePublicId;
-    collection.releaseDate = releaseDate || collection.releaseDate;
-    collection.shoppingLink = shoppingLink || collection.shoppingLink;
+    collection.releaseDate = releaseDate ?? collection.releaseDate;
+    collection.shoppingLink = shoppingLink ?? collection.shoppingLink;
 
-      
-      await collection.save();
-      res.status(200).json(collection);
-
+    await collection.save();
+    res.status(200).json(collection);
   } catch (error) {
     console.error("Error modifying collection:", error);
     res.status(500).json({ message: "Internal server error" });
